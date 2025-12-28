@@ -1,0 +1,122 @@
+const productModel = require("../models/product.model");
+
+const getProduct = (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "Products fetch successfully!",
+  });
+};
+
+const getProductList = async (req, res) => {
+  try {
+    const { name, price, color, isActive,  page = 1, limit = 10 } = req.body;
+
+    const query = {};
+
+    if (typeof name == "string" && name.trim()) {
+      query.name = { $regex: name, $options: "i" };
+    }
+
+    if (typeof price == "number") {
+      query.price = { $regex: price, $options: "i" };
+    }
+
+    if (typeof color == "string" && color.trim()) {
+      query.color = { $regex: color, $options: "i" };
+    }
+    if (typeof isActive == "boolean") {
+      query.price = isActive;
+    }
+
+    // Pagination
+    const skip = (page - 1) * limit;
+
+    const products = await productModel
+    .find(query)
+    .select("name price color")
+    .skip(skip)
+    .limit(limit)
+
+    const total = await productModel.countDocuments(query);
+
+    return res.status(200).json({
+        success: true,
+        message: products.length === 0 ? "No users found" : "User list fetched successfully",
+        meta: {
+            page: page,
+            limit: limit,
+            length: total,
+            totalPage: Math.ceil(total / limit),
+        },
+        data: products
+        
+    })
+
+
+
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error,
+    });
+  }
+};
+
+const addProduct = async (req, res) => {
+  try {
+    const { name, color, price, ...body } = req.body;
+
+    if (!name || !color || !price) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const newProduct = await productModel.create(req.body);
+
+    return res.status(200).json({
+      success: true,
+      message: "Product added successfully",
+      product: newProduct,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error,
+    });
+  }
+};
+
+const addMultipleProducts = async (req, res) => {
+  try {
+    const productArray = req.body;
+
+    if (!Array.isArray(productArray)) {
+      return res.status(400).json({
+        success: false,
+        message: "Request body must be an array of products",
+      });
+    }
+
+    const products = await productModel.insertMany(productArray);
+
+    return res.status(200).json({
+      success: true,
+      message: "Product added successfully",
+      length: products.length,
+      product: products,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error,
+    });
+  }
+};
+
+module.exports = { getProduct, getProductList, addProduct, addMultipleProducts };
