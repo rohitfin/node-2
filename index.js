@@ -4,6 +4,7 @@ const express = require("express");
 const connectDB = require("./config/db.connection");
 
 const auth = require("./middlewares/auth.middleware");
+const cors = require("cors");
 
 const loginRoutes = require("./routes/login.route");
 const logoutRoutes = require("./routes/logout.route");
@@ -14,11 +15,25 @@ const productRoutes = require("./routes/product.route");
 const orderRoutes = require("./routes/order.route");
 const orderItemRoutes = require("./routes/orderItem.route");
 
-const app = express();
+const customRoutes = require("./routes/custom.route");
+
 
 // swagger
 const swaggerUI = require("swagger-ui-express");
 const swaggerSpec = require("./swagger");
+
+
+const app = express();
+
+// CORS
+const corsOptions = {
+  origin: ["http://localhost:3000", "https://myfrontend.com"],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true // if using cookies or auth headers
+};
+
+app.use(cors(corsOptions));
 
 
 // middleware
@@ -40,6 +55,8 @@ app.use("/api/user", auth, userRoutes);
 app.use("/api/product", auth, productRoutes);
 app.use("/api/order", auth, orderRoutes);
 app.use("/api/order-item", auth, orderItemRoutes);
+
+app.use("/api/custom", customRoutes);
 
 
 // simple error handler (expand as needed)

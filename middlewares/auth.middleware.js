@@ -3,7 +3,7 @@ const userSessionModel = require("../models/userSession.model");
 
 const authMiddleware = async (req, res, next) => {
   try {
-    console.log(req);
+
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
@@ -32,8 +32,11 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: "Session expired or logged out" });
     }
 
-    req.user = payload;
-    req.userId = session.userId;
+    req.auth = {
+      userId: session.userId, 
+      role: session.role,     
+      sessionId: session._id,
+    };
 
     next();
 
