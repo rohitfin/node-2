@@ -3,6 +3,14 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const userModel = require("../models/user.model");
 const orderModel = require("../models/order.model");
+const productModel = require("../models/product.model");
+const orderItemModel = require("../models/orderItem.model");
+
+
+
+
+
+
 
 router.post("/getUserByOrder", async (req, res) => {
   try {
@@ -86,5 +94,6 @@ router.post("/getUserByOrder", async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;

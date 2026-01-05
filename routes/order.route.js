@@ -4,7 +4,8 @@ const {
   getOrder,
   addOrder,
   getOrderList,
-  getOrderDetail
+  getOrderDetail,
+  getMyOrders
 } = require("../controllers/order.controller");
 
 router.get("/", getOrder);
@@ -25,5 +26,7 @@ router.post("/create", addOrder);
  */
 router.post("/list", getOrderList);
 router.post("/detail", getOrderDetail);
+
+router.post("/my-orders", getMyOrders);
 
 module.exports = router;

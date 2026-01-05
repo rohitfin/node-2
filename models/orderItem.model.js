@@ -4,12 +4,12 @@ const orderItemSchema = new mongoose.Schema(
   {
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "tbl_order",
+      ref: "tbl_orders",
       required: true,
     },
     productId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "tbl_product",
+      ref: "tbl_products",
       required: true,
     },
     quantity: { type: Number, required: true }
@@ -17,6 +17,6 @@ const orderItemSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const orderItem = mongoose.model("tbl_order_item", orderItemSchema);
+const orderItem = mongoose.model("tbl_order_items", orderItemSchema);
 
 module.exports = orderItem;

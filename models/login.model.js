@@ -8,6 +8,6 @@ const loginSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const login = mongoose.model("tbl_log", loginSchema);
+const login = mongoose.model("tbl_logs", loginSchema);
 
 module.exports = login;

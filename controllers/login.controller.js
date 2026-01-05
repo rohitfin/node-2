@@ -32,7 +32,7 @@ const loginCredential = async (req, res) => {
       { expiresIn: refreshTokenExpiry }
     );
 
-    const accessTokenExpiry = '15m';
+    const accessTokenExpiry = '1d';
     const accessToken = await jwt.sign(
       {
         _id: user._id,
@@ -47,9 +47,13 @@ const loginCredential = async (req, res) => {
     // Calculate expiry date
     const accessDecoded = jwt.decode(accessToken);
     const refreshDecoded = jwt.decode(refreshToken);
+
+    // Check token all ready generate then replace with new 
+    await userSessionModel.deleteOne({userId: user._id});
     
     await userSessionModel.create({
       userId: user._id,
+      role: user.role,
       accessToken: accessToken,
       refreshToken: refreshToken,
       accessTokenExpiresAt: new Date(accessDecoded.exp * 1000),

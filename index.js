@@ -17,6 +17,20 @@ const orderItemRoutes = require("./routes/orderItem.route");
 
 const customRoutes = require("./routes/custom.route");
 
+//#region 
+// console.log( "Hello NodeJS");
+// console.log( "Node version => ",  process.version);
+// console.log( "Node Platform => ",  process.platform);
+// console.log( "CPU usage => ",  process.cpuUsage());
+// console.log( "Memory Usage:", process.memoryUsage());
+// console.log( "Uptime:", process.uptime(), "seconds");
+
+// console.log( "Current Directory => ",  process.cwd());
+// console.log( "Directory path => ",  __dirname);
+// console.log( "File name => ",  __filename);
+// console.log( "global => ",  global);
+
+//#endregion
 
 // swagger
 const swaggerUI = require("swagger-ui-express");

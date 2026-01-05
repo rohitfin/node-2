@@ -1,0 +1,298 @@
+
+/**
+  JOIN Questions
+
+  - List customer names with their order IDs. (Use JOIN between customers → orders)
+  - Show product name, price, and quantity ordered for each item. (Join products → order_items)
+  - Display customer name, product name, and quantity for all orders. (Join all 4 tables)
+  - For each order, show: order id, customer name, product name, price, quantity, total amount (price × quantity)
+
+  GROUP BY / Aggregate Questions
+
+  - Count how many orders each customer has placed.
+  - Total quantity sold for each product.
+  - Find the total money spent by each customer.
+  - Find the product that has been ordered the most (highest total quantity).
+  - Show total sales per order (sum of item price × quantity).
+
+  Subqueries / Advanced
+
+  - Find customers who have never placed an order.
+  - List products that were never ordered.
+  - Find the highest-selling product (by revenue).
+  - Show the order with the maximum total value.
+  - List customers who bought more than 1 different product.
+
+  Real-World Business Questions
+
+  - Generate an invoice-style report: Customer name, Order date, Product, Quantity, Price, Line total, Grand total for order.
+  - Identify loyal customers: those who placed at least 2 orders.
+  - List top 3 most expensive products ever purchased.
+  - Find monthly sales totals (January, February, etc.).
+  - Show average order value per customer.
+  - Show the percentage of total sales contributed by each product.
+**/
+
+
+USER APIs
+1️⃣ Create User API
+
+Endpoint
+
+POST /api/users/create
+
+
+Requirements
+
+Validate name, email, mobile
+
+Prevent duplicate email
+
+Save createdBy from JWT
+
+Save createdIP
+
+Return created user (without sensitive fields)
+
+2️⃣ User List API (Filter + Pagination)
+
+Endpoint
+
+POST /api/users/list
+
+
+Requirements
+
+Filters: name, email, isActive
+
+Pagination: page, limit
+
+Sort by createdAt DESC
+
+Return total count
+
+3️⃣ Soft Delete User API
+
+Endpoint
+
+DELETE /api/users/:id
+
+
+Requirements
+
+Set isDeleted = true
+
+Set modifiedBy, modifiedIP
+
+Prevent deleting Admin user
+
+📦 PRODUCT APIs
+4️⃣ Create Product API
+
+Endpoint
+
+POST /api/products/create
+
+
+Requirements
+
+Validate name, color, price
+
+Save createdBy from token
+
+Save createdIP
+
+Prevent duplicate product (same name + color)
+
+5️⃣ Product List API (Search + Sort)
+
+Endpoint
+
+POST /api/products/list
+
+
+Requirements
+
+Search: name, color
+
+Sort by price ASC/DESC
+
+Pagination support
+
+Return only active products
+
+🧾 ORDER APIs
+6️⃣ Create Order API (Transaction)
+
+Endpoint
+
+POST /api/orders/create
+
+
+Requirements
+
+Create order using userId from token
+
+Validate product existence
+
+Use MongoDB transaction
+
+Return orderId
+
+7️⃣ User Order List API (LOOKUP)
+
+Endpoint
+
+GET /api/orders/my-orders
+
+
+Requirements
+
+Use $lookup
+
+Join: order → product
+
+Return product details per order
+
+User can see only own orders
+
+🧮 ORDER ITEM APIs
+8️⃣ Add Order Items API
+
+Endpoint
+
+POST /api/order-items/add
+
+
+Requirements
+
+Validate orderId, productId, quantity
+
+Prevent duplicate product in same order
+
+Update quantity if exists
+
+9️⃣ Order Detail API (AGGREGATE)
+
+Endpoint
+
+POST /api/orders/detail
+
+
+Requirements
+
+Input: orderId
+
+Use aggregation to return:
+
+{
+  orderId,
+  user: { name, email },
+  items: [{ productName, quantity, price }],
+  totalQuantity,
+  totalAmount
+}
+
+🔗 AGGREGATION–FOCUSED QUESTIONS (IMPORTANT)
+🔟 Order Summary API
+
+Endpoint
+
+GET /api/orders/summary
+
+
+Requirements
+
+Use $group
+
+Total orders
+
+Total quantity sold
+
+Total revenue
+
+1️⃣1️⃣ Top Selling Products API
+
+Endpoint
+
+GET /api/products/top-selling
+
+
+Requirements
+
+Use $lookup + $group
+
+Sort by total quantity DESC
+
+Return top 5 products
+
+1️⃣2️⃣ User Purchase Report API
+
+Endpoint
+
+GET /api/users/purchase-report
+
+
+Requirements
+
+Use $lookup
+
+Group by user
+
+Return total orders & total spend
+
+🔐 SECURITY & BEST PRACTICE APIs
+1️⃣3️⃣ Role-Based Access API
+
+Task
+
+Only Admin can:
+
+Delete users
+
+View all orders
+
+Users can view only their data
+
+1️⃣4️⃣ Rate Limit Order API
+
+Task
+
+Max 5 orders per minute per user
+
+1️⃣5️⃣ Validation API
+
+Task
+
+Validate ObjectId using mongoose.Types.ObjectId.isValid
+
+Return proper error messages
+
+🎯 INTERVIEW–LEVEL CHALLENGE (HARD)
+1️⃣6️⃣ Monthly Sales Report API
+
+Endpoint
+
+GET /api/reports/monthly-sales
+
+
+Requirements
+
+Group orders by month
+
+Return total sales per month
+
+Sort by month
+
+1️⃣7️⃣ Products Never Ordered API
+
+Endpoint
+
+GET /api/products/not-ordered
+
+
+Requirements
+
+Use $lookup with pipeline
+
+Return products without orders

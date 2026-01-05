@@ -9,13 +9,13 @@ const userSchema = new mongoose.Schema(
     
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "tbl_user" },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "tbl_users" },
     createdIP: { type: String, default: null },
-    modifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "tbl_user" },
+    modifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "tbl_users" },
     modifiedIP: { type: String, default: null },
   },
   { timestamps: true }
 );
 
-const user = mongoose.model("tbl_user", userSchema);
+const user = mongoose.model("tbl_users", userSchema);
 module.exports = user;

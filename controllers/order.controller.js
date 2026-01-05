@@ -30,27 +30,36 @@ const getOrderList = async (req, res) => {
   try {
     const loginUser = req.auth;
 
+        if (!loginUser || !loginUser.userId) {
+          return res.status(401).json({
+            success: false,
+            message: "Unauthorized access",
+          });
+        }
+
     let matchQuery = {};
 
-    // 👤 USER → only own orders
+    // USER → only own orders
     if (loginUser.role === "User") {
       matchQuery.userId = new mongoose.Types.ObjectId(loginUser.userId);
     }
 
-    // 👑 ADMIN → all orders OR filter by userId
-    if (loginUser.role === "Admin") {
-      const { userId } = req.body;
+    // Manager logic
 
-      if (userId) {
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid userId",
-          });
-        }
-        matchQuery.userId = new mongoose.Types.ObjectId(userId);
-      }
-    }
+    // ADMIN → all orders OR filter by userId
+    // if (loginUser.role === "Admin") {
+    //   const { userId } = req.body;
+
+    //   if (userId) {
+    //     if (!mongoose.Types.ObjectId.isValid(userId)) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message: "Invalid userId",
+    //       });
+    //     }
+    //     matchQuery.userId = new mongoose.Types.ObjectId(userId);
+    //   }
+    // }
 
     const orders = await orderModel.aggregate([
       // 1️⃣ FILTER FIRST (VERY IMPORTANT)
@@ -99,6 +108,7 @@ const getOrderList = async (req, res) => {
       }
     ]);
 
+    // const orders = await orderModel.find({userId: loginUser.userId })
     if (!orders.length) {
       return res.status(404).json({
         success: false,
@@ -244,4 +254,18 @@ const getOrderDetail = async (req, res) => {
   }
 };
 
-module.exports = { getOrder, getOrderList, addOrder, getOrderDetail };
+const getMyOrders = (req, res)=>{
+  try {
+
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+
+
+module.exports = { getOrder, getOrderList, addOrder, getOrderDetail, getMyOrders };

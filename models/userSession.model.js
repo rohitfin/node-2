@@ -4,7 +4,13 @@ const userSessionSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "tbl_user",
+      ref: "tbl_users",
+      required: true,
+      index: true,
+    },
+    role: {
+      type: String,
+      enum: ["Admin", "Manager", "User"],
       required: true,
       index: true,
     },
@@ -24,6 +30,6 @@ const userSessionSchema = new mongoose.Schema(
 // Auto-delete expired sessions (TTL Index)
 userSessionSchema.index({ refreshTokenExpiresAt: 1 }, { expireAfterSeconds: 0 });
 
-const userSession = mongoose.model("tbl_user_session", userSessionSchema);
+const userSession = mongoose.model("tbl_user_sessions", userSessionSchema);
 
 module.exports = userSession;
