@@ -296,3 +296,17 @@ Requirements
 Use $lookup with pipeline
 
 Return products without orders
+
+
+
+
+------
+Cursor-based pagination (better than skip)
+Redis caching
+Aggregation version with product lookup
+API rate limiting
+Swagger documentation for pagination
+Migration script with Node.js
+Zero-downtime migration strategy
+Index performance comparison
+Soft delete + restore logic

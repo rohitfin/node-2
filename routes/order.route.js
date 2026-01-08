@@ -8,7 +8,7 @@ const {
   getMyOrders
 } = require("../controllers/order.controller");
 
-router.get("/", getOrder);
+router.post("/", getOrder);
 router.post("/create", addOrder);
 
 /**
