@@ -30,7 +30,7 @@ router.post("", async (req, res) => {
       const newAccessToken = jwt.sign(
         { userId: payload.userId },
         process.env.JWT_SECRET,
-        { expiresIn: "15m" }
+        { expiresIn: "1d" }
       );
 
       const decoded = jwt.decode(newAccessToken);

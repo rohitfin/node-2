@@ -93,7 +93,15 @@ const getMyOrders = async (req, res) => {
     const [orders, totalRecords] = await Promise.all([
       orderModel
         .find(query)
-        .select("_id orderNumber totalAmount status createdAt") // Projection
+        .select("_id orderNumber totalAmount status createdAt userId") // Projection
+        .populate({
+          path: "userId",
+          select: "name email"
+        })
+        .populate({
+          path: "productId",
+          select: "name price"
+        })
         .sort({ createdAt: -1 }) // Sorting - Latest orders first
         .skip(skip)
         .limit(limit)
