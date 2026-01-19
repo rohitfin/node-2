@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const userModel = require("../models/user.model");
 
 const getUser = (req, res) => {
@@ -139,4 +140,70 @@ const createUser = async (req, res) => {
   }
 };
 
-module.exports = { getUser, getUserList, createUser, updateUser };
+const userDelete = async (req, res) => {
+  try {
+
+    const loginUser = req.auth;
+
+    if (!mongoose.Types.ObjectId.isValid(loginUser.userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid userId",
+      });
+    }
+
+    const { id } = req.params;
+
+    // const user = await userModel.findOneAndUpdate(
+    //   { _id: id, isDeleted: false },
+    //   {
+    //     $set: {
+    //       isDeleted: true,
+    //       deletedAt: new Date()
+    //     },
+    //   },
+    //   { new: true }
+    // )
+
+
+    const user = await userModel.findOne(
+      { _id: id,
+        isDeleted: false
+       }
+    );
+    
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found or already deleted.",
+      });
+    }
+
+    if(user.role === "Admin"){
+      return res.status(403).json({
+        success: false,
+        message: "Admin user cannot be deleted"
+      })
+    }
+
+    user.isDeleted = true;
+    user.deleteAt = new Date();
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "User deleted successfully"
+    })
+
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error
+    });
+  }
+};
+
+module.exports = { getUser, getUserList, createUser, updateUser, userDelete };

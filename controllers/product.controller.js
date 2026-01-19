@@ -75,6 +75,18 @@ const addProduct = async (req, res) => {
       });
     }
 
+    const product = await productModel.findOne({
+      name: name,
+      color: color
+    })
+
+    if(product){
+      return res.status(400).json({
+        success: false,
+        message: "Product is all ready added",
+      });
+    }
+
     const newProduct = await productModel.create(req.body);
 
     return res.status(200).json({
@@ -119,4 +131,47 @@ const addMultipleProducts = async (req, res) => {
   }
 };
 
-module.exports = { getProduct, getProductList, addProduct, addMultipleProducts };
+const getProductSummary = async (req, res)=>{
+  try {
+    // products total price
+
+    const products = await productModel.aggregate([
+      {
+        $match: {
+          isDeleted: false,
+          isActive: true,
+        },
+      },
+      {
+        $group: {
+          _id: "$color",
+          totalProducts: { $sum: 1 },
+          avgPrice: { $avg: "$price" },
+        },
+      },
+    ]);
+
+    if (!products.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No products found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "products fetched successfully!",
+      data: products,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
+
+
+module.exports = { getProduct, getProductList, addProduct, addMultipleProducts, getProductSummary };

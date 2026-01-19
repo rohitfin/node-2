@@ -13,7 +13,7 @@ const getOrder = async (req, res) => {
       query.productName = { $regex: productName, $options: "i" };
     }
 
-    if(typeof isActive == "boolean"){
+    if (typeof isActive == "boolean") {
       query.isActive = isActive;
     }
 
@@ -21,13 +21,10 @@ const getOrder = async (req, res) => {
     const skip = (page - 1) * limit;
 
     let order = [];
-    if(orderId){
-      order = await orderModel.find({_id: orderId});
+    if (orderId) {
+      order = await orderModel.find({ _id: orderId });
     } else {
-      order = await orderModel
-      .find(query)
-      .skip(skip)
-      .limit(limit)
+      order = await orderModel.find(query).skip(skip).limit(limit);
     }
 
     let total = await orderModel.countDocuments(query);
@@ -83,10 +80,11 @@ const getMyOrders = async (req, res) => {
     // Query
     const query = {
       userId: authUser.userId,
-      $or: [ // Handle both cases: field missing OR false
-          { isDeleted: false },
-          { isDeleted: { $exists: false } },
-        ],
+      $or: [
+        // Handle both cases: field missing OR false
+        { isDeleted: false },
+        { isDeleted: { $exists: false } },
+      ],
     };
 
     // DB calls
@@ -96,11 +94,11 @@ const getMyOrders = async (req, res) => {
         .select("_id orderNumber totalAmount status createdAt userId") // Projection
         .populate({
           path: "userId",
-          select: "name email"
+          select: "name email",
         })
         .populate({
           path: "productId",
-          select: "name price"
+          select: "name price",
         })
         .sort({ createdAt: -1 }) // Sorting - Latest orders first
         .skip(skip)
@@ -138,7 +136,6 @@ const getMyOrders = async (req, res) => {
   }
 };
 
-
 const getOrderList = async (req, res) => {
   try {
     const loginUser = req.auth;
@@ -157,6 +154,11 @@ const getOrderList = async (req, res) => {
       });
     }
 
+    // pagination values
+    const page = Math.max(parseInt(req.body.page) || 1, 1);
+    const limit = Math.max(parseInt(req.body.limit) || 10, 1);
+    const skip = (page - 1) * limit;
+
     const matchQuery = {};
 
     // ROLE BASED ACCESS
@@ -173,9 +175,11 @@ const getOrderList = async (req, res) => {
     // Admin → see all orders (no filter)
     // if (loginUser.role === "Admin") {}
 
-    const orders = await orderModel.aggregate([
+    const result = await orderModel.aggregate([
+      // match
       { $match: matchQuery },
 
+      // lookup
       {
         $lookup: {
           from: "tbl_products",
@@ -196,6 +200,7 @@ const getOrderList = async (req, res) => {
       },
       { $unwind: "$user" },
 
+      // project
       {
         $project: {
           _id: 1,
@@ -212,7 +217,19 @@ const getOrderList = async (req, res) => {
           },
         },
       },
+
+      // facet for pagination + count
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: "count" }],
+        },
+      },
     ]);
+
+    const orders = result[0].data;
+    const totalRecords = result[0].totalCount[0]?.count || 0;
+    const totalPages = Math.ceil(totalRecords / limit);
 
     if (!orders.length) {
       return res.status(404).json({
@@ -224,6 +241,12 @@ const getOrderList = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Orders fetched successfully!",
+      meta: {
+        page,
+        limit,
+        totalRecords,
+        totalPages,
+      },
       data: orders,
     });
   } catch (error) {
@@ -358,7 +381,103 @@ const getOrderDetail = async (req, res) => {
   }
 };
 
+const getOrderWithGroup = async (req, res) => {
+  try {
+    const loginUser = req.auth;
 
+    if (!mongoose.Types.ObjectId.isValid(loginUser.userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid userId",
+      });
+    }
+
+    const orders = await orderModel.aggregate([
+      {
+        $lookup: {
+          from: "tbl_products",
+          localField: "productId",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      { $unwind: "$product" },
+
+      {
+        $group: {
+          _id: "$product._id",
+          productName: { $first: "$product.name" },
+          totalOrders: { $sum: 1 },
+          totalQuantity: { $sum: "$quality" },
+          totalRevenue: { $sum: "$totalPrice" },
+        },
+      },
+    ]);
+
+    if (!orders.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No orders found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Orders fetched successfully!",
+      data: orders,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+const getOrderSummary = async (req, res) => {
+  //Requirements : Use $group, Total orders, Total quantity, sold Total revenue
+  // order,
+  try {
+    const loginUser = req.auth;
+
+    if (!mongoose.Types.ObjectId.isValid(loginUser.userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid userId",
+      });
+    }
+
+    const page = req.body.page ?? 1;
+    const limit = req.body.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    // query["userId"] = loginUser.userId;
+
+    const orders = await orderModel.find(query)
+     .populate("productId", "name")
+    .skip(skip).limit(limit)
+
+    if (!orders.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No orders found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Orders fetched successfully!",
+      data: orders,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      reportError,
+    });
+  }
+};
 
 module.exports = {
   getOrder,
@@ -366,4 +485,5 @@ module.exports = {
   addOrder,
   getOrderDetail,
   getMyOrders,
+  getOrderSummary,
 };

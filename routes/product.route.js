@@ -5,6 +5,7 @@ const {
   addProduct,
   addMultipleProducts,
   getProductList,
+  getProductSummary
 } = require("../controllers/product.controller");
 
 
@@ -72,5 +73,7 @@ router.post("/create", addProduct);
  *         description: Products added successfully
  */
 router.post("/bulk-create", addMultipleProducts);
+
+router.post("/summary", getProductSummary);
 
 module.exports = router;
