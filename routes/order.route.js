@@ -6,7 +6,7 @@ const {
   getOrderList,
   getOrderDetail,
   getMyOrders,
-  getOrderSummary
+  getUserOrderSummaryWithOrders
 } = require("../controllers/order.controller");
 
 router.post("/", getOrder);
@@ -28,7 +28,7 @@ router.post("/create", addOrder);
 router.post("/list", getOrderList);
 router.post("/detail", getOrderDetail);
 
-router.post("/my-orders", getMyOrders);
-router.post("/summary", getOrderSummary);
+router.post("/myOrders", getMyOrders);
+router.post("/getUserOrderSummaryWithOrders", getUserOrderSummaryWithOrders);
 
 module.exports = router;

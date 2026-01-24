@@ -434,7 +434,7 @@ const getOrderWithGroup = async (req, res) => {
   }
 };
 
-const getOrderSummary = async (req, res) => {
+const getOrderSummary2 = async (req, res) => {
   //Requirements : Use $group, Total orders, Total quantity, sold Total revenue
   // order,
   try {
@@ -447,16 +447,61 @@ const getOrderSummary = async (req, res) => {
       });
     }
 
-    const page = req.body.page ?? 1;
-    const limit = req.body.limit ?? 10;
+    const page = Number(req.body.page) || 1;
+    const limit = Number(req.body.limit) || 10;
     const skip = (page - 1) * limit;
 
     const query = {};
     // query["userId"] = loginUser.userId;
 
-    const orders = await orderModel.find(query)
-     .populate("productId", "name")
-    .skip(skip).limit(limit)
+    // const orders = await orderModel
+    //   .find(query)
+    //   .populate("productId", "name")
+    //   .populate("userId", "name")
+    //   .skip(skip)
+    //   .limit(limit);
+
+    const result = await orderModel.aggregate([
+      // match
+      {
+        $match: query,
+      },
+      // lookup
+      {
+        $lookup: {
+          from: "tbl_users", // table name
+          localField: "userId", // Performing model related to lookup table
+          foreignField: "_id", // lookup table primary or relation key name
+          as: "users",
+        },
+      },
+      // unwind
+      {
+        $unwind: "$users",
+      },
+      // project
+      {
+        $project: {
+          _id: 1,
+          createdAt: 1,
+          name: "$users.name",
+        },
+      },
+
+      // facet = pagination
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: "count" }],
+        },
+      },
+    ]);
+
+    // const total = await orderModel.countDocuments(query);
+
+    const orders = result[0].data;
+    const totalRecords = result[0].totalCount[0]?.count || 0;
+    const totalPages = Math.ceil(totalRecords / limit);
 
     if (!orders.length) {
       return res.status(404).json({
@@ -468,16 +513,270 @@ const getOrderSummary = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Orders fetched successfully!",
+      meta: {
+        page: page,
+        limit: limit,
+        totalRecords,
+        totalPages,
+      },
       data: orders,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: "Server error",
-      reportError,
+      error: error,
     });
   }
 };
+
+
+// Requirements Use $group for Total orders, Total quantity sold and Total revenue
+const getUserOrderSummaryWithOrders = async (req, res) => {
+  try {
+    const loginUser = req.auth;
+
+    if (!mongoose.Types.ObjectId.isValid(loginUser.userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid userId",
+      });
+    }
+
+    // pagination values
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
+
+    const query = {};
+    query["userId"] = loginUser.userId;
+
+    const result = await orderModel.aggregate([
+      { $match: query },
+      {
+        $lookup: {
+          from: "tbl_products",
+          localField: "productId",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      { $unwind: { path: "$product", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "tbl_order_items",
+          localField: "_id",
+          foreignField: "orderId",
+          as: "orderItem",
+        },
+      },
+      { $unwind: { path: "$orderItem", preserveNullAndEmptyArrays: true } },
+
+      // {
+      //   $project: {
+      //     _id: 1,
+      //     name: "$product.name",
+      //   },
+      // },
+
+      {
+        $facet: {
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $project: {
+                _id: 1,
+                orderId: "$_id",
+                productName: "$product.name",
+                price: "$product.price",
+                quantity: "$orderItem.quantity",
+                totalSold: {
+                  $multiply: ["$orderItem.quantity", "$product.price"],
+                },
+              },
+            },
+          ],
+
+          totalRecords: [{ $group: { _id: "$_id" } }, { $count: "count" }],
+
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $addToSet: "$_id" },
+                totalQuantitySold: { $sum: "$orderItem.quantity" },
+                totalRevenue: {
+                  $sum: {
+                    $multiply: ["$orderItem.quantity", "$product.price"],
+                  },
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                totalOrders: { $size: "$totalOrders" },
+                totalQuantitySold: 1,
+                totalRevenue: 1,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const orders = result[0].data;
+    const summary = result[0].summary;
+    const totalRecords = result[0].totalRecords[0]?.count || 0;
+    const totalPages = Math.ceil(totalRecords / limit);
+
+    return res.status(200).json({
+      success: true,
+      message: orders.length
+        ? "Orders fetched successfully"
+        : "No orders found",
+      meta: {
+        page,
+        limit,
+        totalRecords,
+        totalPages,
+      },
+      summary: summary,
+      data: orders,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
+const getOrderSummary3 = async (req, res) => {
+  try {
+    const loginUser = req.auth;
+
+    if (!mongoose.Types.ObjectId.isValid(loginUser.userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid userId",
+      });
+    }
+
+    // pagination
+    const page = Math.max(parseInt(req.query.page) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit) || 10, 1);
+    const skip = (page - 1) * limit;
+
+    const result = await orderModel.aggregate([
+      { $match: { userId: loginUser.userId } },
+
+      {
+        $lookup: {
+          from: "tbl_products",
+          localField: "productId",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      { $unwind: "$product" },
+
+      {
+        $lookup: {
+          from: "tbl_order_item",
+          localField: "orderId",
+          foreignField: "_id",
+          as: "orderItem",
+        },
+      },
+      { $unwind: "$orderItem" },
+
+      {
+        $facet: {
+          // 1️⃣ Paginated data
+          data: [
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+            {
+              $project: {
+                _id: 1,
+                productName: "$product.name",
+                price: "$product.price",
+                quantity: "$orderItem.quantity",
+                orderId: 1,
+              },
+            },
+          ],
+
+          // 2️⃣ Total records
+          totalRecords: [{ $count: "count" }],
+
+          // 3️⃣ Summary using $group
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $addToSet: "$orderId" },
+                totalQuantitySold: { $sum: "$orderItem.quantity" },
+                totalRevenue: {
+                  $sum: {
+                    $multiply: [
+                      "$orderItem.quantity",
+                      "$product.price",
+                    ],
+                  },
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                totalOrders: { $size: "$totalOrders" },
+                totalQuantitySold: 1,
+                totalRevenue: 1,
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const data = result[0].data;
+    const totalRecords = result[0].totalRecords[0]?.count || 0;
+    const summary = result[0].summary[0] || {
+      totalOrders: 0,
+      totalQuantitySold: 0,
+      totalRevenue: 0,
+    };
+
+    return res.status(200).json({
+      success: true,
+      meta: {
+        page,
+        limit,
+        totalRecords,
+        totalPages: Math.ceil(totalRecords / limit),
+      },
+      summary,
+      data,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
+
 
 module.exports = {
   getOrder,
@@ -485,5 +784,5 @@ module.exports = {
   addOrder,
   getOrderDetail,
   getMyOrders,
-  getOrderSummary,
+  getUserOrderSummaryWithOrders,
 };
